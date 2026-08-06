@@ -1,0 +1,230 @@
+---
+// REFERENCE ONLY — not imported anywhere in src/, not part of the build.
+//
+// This shows one way we solved a numbered, rail-connected "process/phases"
+// section for one dental-clinic client. Redesign this from scratch per the
+// new client's own brief and brand guidelines — don't reskin it. Their offer
+// may not even have a "phases" concept; if it does, its layout, count, and
+// visual treatment should come from their brief, not from this file.
+//
+// The part actually worth reusing: the connecting-rail technique (a node
+// with thin connector segments above/below, implying one continuous method
+// running through several sections) and the reveal-on-scroll wiring via
+// data-reveal. Everything else — copy, spacing choices, the specific "flat"
+// visual language — is this brand's opinion, not infrastructure.
+export interface Props {
+  n: string;
+  name: string;
+  body: string;
+  deliverables: string[];
+  inverse?: boolean;
+  alt?: boolean;
+  first?: boolean;
+  last?: boolean;
+  total?: number;
+}
+
+const { n, name, body, deliverables, inverse = false, alt = false, first = false, last = false, total = 5 } = Astro.props;
+---
+
+<section class:list={['section phase-section', { 'section--inverse': inverse, 'section--alt': alt && !inverse }]}>
+  <div class="container phase-section__inner">
+    <div class="phase-section__lead" data-reveal>
+      <div class="phase-section__rail">
+        {!first && (
+          <span class="phase-section__rail-seg" data-reveal data-reveal-delay="40" aria-hidden="true" />
+        )}
+        <span class:list={['phase-section__node', { 'phase-section__node--inverse': inverse }]}>
+          <span class="evidence phase-section__node-n" aria-hidden="true">{n}</span>
+        </span>
+        {!last && (
+          <span class="phase-section__rail-seg" data-reveal data-reveal-delay="170" aria-hidden="true" />
+        )}
+      </div>
+      <div class="phase-section__lead-text">
+        <span class:list={['evidence phase-section__progress', { 'phase-section__progress--inverse': inverse }]}>
+          STEP {n} / {String(total).padStart(2, '0')}
+        </span>
+        <h2 class="phase-section__name">{name}</h2>
+      </div>
+    </div>
+
+    <div class="phase-section__content">
+      <p class="phase-section__body" data-reveal data-reveal-delay="60">{body}</p>
+
+      <ul class="phase-section__list" data-reveal data-reveal-delay="120">
+        {deliverables.map((item) => (
+          <li>
+            <span class="evidence phase-section__arrow" aria-hidden="true">&rarr;</span>
+            {item}
+          </li>
+        ))}
+      </ul>
+
+      <div class="phase-section__artifact" data-reveal data-reveal-delay="180">
+        <slot name="artifact" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .phase-section__inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .phase-section__lead {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-4);
+  }
+
+  .phase-section__rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  /* Decorative, non-contrast-critical derivation — plain color-mix() at the
+     point of use is fine here, no dual-declaration fallback needed. See
+     src/styles/global.css's header comment for the two-tier rule this follows. */
+  .phase-section__rail-seg {
+    display: block;
+    width: 2px;
+    height: var(--space-8);
+    background: color-mix(in srgb, var(--brand-slate) 28%, transparent);
+  }
+
+  .section--inverse .phase-section__rail-seg {
+    background: color-mix(in srgb, white 25%, transparent);
+  }
+
+  :global(.js-reveal-ready) .phase-section__rail-seg[data-reveal] {
+    opacity: 1;
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform var(--motion-reveal);
+  }
+
+  :global(.js-reveal-ready) .phase-section__rail-seg[data-reveal].is-visible {
+    transform: scaleY(1);
+  }
+
+  .phase-section__node {
+    flex-shrink: 0;
+    width: 2.75rem;
+    height: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--brand-slate);
+  }
+
+  .phase-section__node-n {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-on-inverse);
+  }
+
+  .phase-section__node--inverse {
+    background: var(--text-on-inverse);
+  }
+
+  .phase-section__node--inverse .phase-section__node-n {
+    color: var(--brand-slate-deep);
+  }
+
+  .phase-section__lead-text {
+    display: flex;
+    flex-direction: column;
+    padding-top: 0.4rem;
+  }
+
+  .phase-section__progress {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    margin-bottom: var(--space-1);
+  }
+
+  .phase-section__progress--inverse {
+    color: var(--text-on-inverse-muted);
+  }
+
+  .phase-section__name {
+    font-size: var(--text-3xl);
+  }
+
+  .phase-section__content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    max-width: 65ch;
+  }
+
+  .phase-section__body {
+    font-size: var(--text-lg);
+    line-height: 1.6;
+  }
+
+  .section--inverse .phase-section__body {
+    color: var(--text-on-inverse-muted);
+  }
+
+  .phase-section__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    list-style: none;
+    padding-top: var(--space-4);
+    border-top: var(--border-width-hairline) solid var(--border-hairline);
+  }
+
+  .section--inverse .phase-section__list {
+    border-top-color: color-mix(in srgb, white 15%, transparent);
+  }
+
+  .phase-section__list li {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+  }
+
+  .section--inverse .phase-section__list li {
+    color: var(--text-on-inverse-muted);
+  }
+
+  .phase-section__arrow {
+    flex-shrink: 0;
+    font-size: var(--text-xs);
+    color: var(--brand-slate);
+  }
+
+  .section--inverse .phase-section__arrow {
+    color: var(--text-on-inverse);
+  }
+
+  .phase-section__artifact:empty {
+    display: none;
+  }
+
+  @media (min-width: 900px) {
+    .phase-section__inner {
+      flex-direction: row;
+      gap: var(--space-12);
+    }
+
+    .phase-section__lead {
+      flex: 0.6;
+    }
+
+    .phase-section__content {
+      flex: 1.4;
+    }
+  }
+</style>

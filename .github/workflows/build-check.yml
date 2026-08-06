@@ -1,0 +1,96 @@
+# build-check.yml — Automatic Build Verification
+#
+# WHAT THIS DOES:
+# Every time you push code to the main branch,
+# GitHub automatically runs 'npm run build' on your project.
+# If the build passes → green checkmark on GitHub
+# If the build fails  → red X on GitHub + email notification
+#
+# WHY THIS MATTERS:
+# Code can work perfectly on your local machine but fail
+# during Netlify's build process due to:
+#   - A missing dependency
+#   - An Astro config error
+#   - A broken import path
+#   - An environment variable that exists locally but not on Netlify
+# This workflow catches those failures before your client sees them.
+#
+# HOW TO ACTIVATE:
+# This file is ready to run as-is — no API key needed.
+# It activates automatically the moment you push this repo to GitHub.
+# GitHub reads this file and sets up the workflow for you.
+#
+# HOW TO DISABLE:
+# Change 'push' to 'workflow_dispatch' below to make it manual-only.
+# Or delete this file entirely to remove the workflow.
+
+# 'name' is what appears on the GitHub Actions dashboard
+name: Build Check
+
+# 'on' defines what event triggers this workflow
+# 'push' means: run this every time code is pushed
+# 'branches: [main]' means: only watch the main branch
+# Draft branches and feature branches are ignored
+on:
+  push:
+    branches: [main]
+
+# 'jobs' defines what actually runs
+# You can have multiple jobs — we only need one
+jobs:
+
+  # 'build' is the name of our job
+  # You can name this anything — it shows up in the GitHub UI
+  build:
+
+    # 'runs-on' defines the machine GitHub uses to run this job
+    # 'ubuntu-latest' is a fresh Linux machine spun up just for this run
+    # It is destroyed after the job finishes
+    runs-on: ubuntu-latest
+
+    # 'steps' are the individual commands that run in order
+    # If any step fails, the job stops and reports failure
+    steps:
+
+      # Step 1 — Check out your code onto the Ubuntu machine
+      # 'uses' means we're using a pre-built GitHub Action
+      # 'actions/checkout@v4' is GitHub's official checkout action
+      # Without this step, the machine has no access to your code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2 — Install Node.js on the Ubuntu machine
+      # 'actions/setup-node@v4' is GitHub's official Node.js installer
+      # 'node-version: 20' matches the Node version Astro requires
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+          # 'cache: npm' tells GitHub to save the node_modules folder
+          # between runs so it doesn't re-download everything each time
+          # Makes subsequent runs significantly faster
+          cache: "npm"
+
+      # Step 3 — Install all project dependencies
+      # 'run' means: execute this shell command on the Ubuntu machine
+      # 'npm ci' is like 'npm install' but:
+      #   - Faster (uses package-lock.json exactly, no resolving)
+      #   - Safer (fails if package-lock.json is out of sync)
+      #   - Designed for automated environments like this
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4 — Run the Astro build
+      # This is the main check — same command Netlify runs
+      # If this passes here, it will pass on Netlify
+      # If this fails here, you know before your client sees a broken site
+      - name: Run build
+        run: npm run build
+
+      # Step 5 — Confirm the dist/ folder was created
+      # 'dist/' is where Astro puts the built site files
+      # If it exists and has files, the build genuinely succeeded
+      # 'ls -la dist/' lists the contents so you can see them in the logs
+      - name: Verify dist folder exists
+        run: ls -la dist/

@@ -1,0 +1,63 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+interface Props {
+  src: ImageMetadata;
+  alt: string;
+  url: string;
+  width: number;
+  height: number;
+}
+
+const { src, alt, url, width, height } = Astro.props;
+---
+
+<div class="browser-chrome">
+  <div class="browser-chrome__bar">
+    <span class="browser-chrome__dot"></span>
+    <span class="browser-chrome__dot"></span>
+    <span class="browser-chrome__dot"></span>
+    <span class="browser-chrome__url">{url}</span>
+  </div>
+  <Image src={src} alt={alt} width={width} height={height} format="webp" loading="lazy" class="browser-chrome__shot" />
+</div>
+
+<style>
+  .browser-chrome {
+    border: var(--border-width-hairline) solid var(--border-hairline);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--surface-card);
+    box-shadow: var(--shadow-structural);
+  }
+
+  .browser-chrome__bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: var(--n100);
+    border-bottom: var(--border-width-hairline) solid var(--border-hairline);
+  }
+
+  .browser-chrome__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--n300);
+  }
+
+  .browser-chrome__url {
+    margin-left: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+  }
+
+  .browser-chrome__shot {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+</style>

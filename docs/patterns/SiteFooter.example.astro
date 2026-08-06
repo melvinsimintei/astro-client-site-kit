@@ -1,0 +1,225 @@
+---
+// REFERENCE ONLY — not imported anywhere in src/, not part of the build.
+//
+// Pair with SiteHeader.example.astro — same rationale (build fresh per
+// client, reuse the techniques). Worth keeping here: the responsive grid
+// reflow (single column on mobile, 3-column grid at tablet+) and the same
+// coarse-pointer touch-target pattern the header uses, applied consistently.
+export interface NavLink {
+  href: string;
+  label: string;
+}
+
+export interface Props {
+  navLinks: NavLink[];
+  brandLabel: string;
+  tagline: string;
+  ctaHref: string;
+  ctaLabel: string;
+  legalName: string;
+}
+
+const { navLinks, brandLabel, tagline, ctaHref, ctaLabel, legalName } = Astro.props;
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer section--inverse">
+  <div class="container site-footer__inner" data-reveal>
+    <div class="site-footer__grid">
+      <div class="site-footer__brand">
+        <!-- <Image src={markReverse} alt="" aria-hidden="true" class="site-footer__mark" loading="eager" /> -->
+        <div class="site-footer__wordmark">
+          <span class="site-footer__wordmark-top">{brandLabel}</span>
+        </div>
+        <p class="site-footer__tagline">{tagline}</p>
+      </div>
+
+      <nav class="site-footer__nav" aria-label="Footer">
+        <span class="site-footer__nav-label">Pages</span>
+        <ul class="site-footer__links">
+          {navLinks.map((link) => (
+            <li><a href={link.href} class="site-footer__link">{link.label}</a></li>
+          ))}
+        </ul>
+      </nav>
+
+      <div class="site-footer__action">
+        <a href={ctaHref} class="btn btn-primary btn-primary--on-inverse site-footer__cta">
+          {ctaLabel}
+        </a>
+      </div>
+    </div>
+
+    <div class="site-footer__bottom">
+      <p class="site-footer__legal">&copy; {year} {legalName}. All rights reserved.</p>
+      <a href="#main" class="site-footer__top-link">Back to top &uarr;</a>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    background-color: var(--surface-inverse-deep);
+    padding: var(--space-12) 0 var(--space-8);
+  }
+
+  .site-footer__inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+  }
+
+  .site-footer__grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+  }
+
+  .site-footer__brand {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .site-footer__mark {
+    width: 40px;
+    height: 40px;
+  }
+
+  .site-footer__wordmark {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+
+  .site-footer__wordmark-top {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: var(--text-base);
+    color: var(--text-on-inverse);
+  }
+
+  .site-footer__tagline {
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    color: var(--text-on-inverse);
+    margin-top: var(--space-1);
+  }
+
+  .site-footer__nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .site-footer__nav-label {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: var(--text-xs);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-on-inverse-muted);
+  }
+
+  .site-footer__links {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    list-style: none;
+  }
+
+  .site-footer__link {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-on-inverse-muted);
+    transition: color var(--motion-standard);
+  }
+
+  /* Same coarse-pointer touch-target pattern as SiteHeader.example.astro */
+  @media (pointer: coarse) {
+    .site-footer__link {
+      display: inline-block;
+      padding-block: var(--space-4);
+    }
+  }
+
+  .site-footer__link:hover,
+  .site-footer__link:focus-visible {
+    color: var(--text-on-inverse);
+  }
+
+  .site-footer__link:focus-visible {
+    outline: 2px solid var(--text-on-inverse);
+    outline-offset: 3px;
+    border-radius: var(--radius-sm);
+  }
+
+  .site-footer__action {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding-top: var(--space-6);
+    border-top: 1px solid color-mix(in srgb, white 15%, transparent);
+  }
+
+  .site-footer__cta {
+    width: 100%;
+  }
+
+  .site-footer__bottom {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding-top: var(--space-6);
+    border-top: 1px solid color-mix(in srgb, white 15%, transparent);
+  }
+
+  .site-footer__legal {
+    font-size: var(--text-xs);
+    color: var(--text-on-inverse-muted);
+  }
+
+  .site-footer__top-link {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--text-on-inverse-muted);
+    transition: color var(--motion-standard);
+  }
+
+  .site-footer__top-link:hover,
+  .site-footer__top-link:focus-visible {
+    color: var(--text-on-inverse);
+  }
+
+  .site-footer__top-link:focus-visible {
+    outline: 2px solid var(--text-on-inverse);
+    outline-offset: 3px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Responsive grid reflow: single column on mobile, 3-column at tablet+ */
+  @media (min-width: 768px) {
+    .site-footer__grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr;
+      gap: var(--space-8);
+    }
+
+    .site-footer__action {
+      padding-top: 0;
+      border-top: none;
+    }
+
+    .site-footer__cta {
+      width: auto;
+    }
+
+    .site-footer__bottom {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+</style>

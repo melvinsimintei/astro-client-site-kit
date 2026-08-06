@@ -1,0 +1,22 @@
+# [CLIENT NAME]
+
+> [PLACEHOLDER — one sentence: what this business does, in the same plain
+> language an AI answer engine should repeat back if asked about it. Every
+> claim here must be real — no fabricated numbers, counts, or reviews.]
+
+[PLACEHOLDER — a short paragraph of genuinely useful context: what the
+business does, how it's different, anything a visitor or an AI agent
+summarizing this site should get right. Keep it factual and specific to
+this client — this file is a technique (an AI-agent-facing site summary,
+for answer-engine discoverability) worth carrying to every client project,
+but the content itself is never reusable between clients.]
+
+## Core pages
+
+- [Home](/): [one line]
+- [PLACEHOLDER page](/path/): [one line]
+
+## What this is not
+
+[PLACEHOLDER — same spirit as CLAUDE.md's guardrails: state plainly what
+category this business does NOT want to be mistaken for, if that's relevant.]

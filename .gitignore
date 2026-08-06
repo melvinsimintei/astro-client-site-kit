@@ -1,0 +1,44 @@
+# build output
+dist/
+# generated types
+.astro/
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# environment variables
+.env
+.env.production
+.env.local
+
+# macOS-specific files
+.DS_Store
+
+# jetbrains setting folder
+.idea/
+
+#Claude Code agent memory (private, per-project)
+.claude/agent-memory/
+
+#OS files
+.DS_Store
+Thumbs.db 
+
+.playwright-mcp/
+
+# Claude Code local settings (per-machine, contains absolute paths)
+.claude/settings.local.json
+
+# Impeccable skill: per-developer local overrides and cache (not shared config)
+.impeccable/config.local.json
+.impeccable/hook.cache.json
+.impeccable/critique/
+
+# Graphify skill: generated knowledge-graph cache/output
+graphify-out/
