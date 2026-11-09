@@ -48,7 +48,16 @@ mention it with the Write tool, not a shell heredoc.
 
 - Playwright without prompts: `~/.claude/settings.json` → `"permissions": {"allow": ["mcp__playwright", "mcp__playwright__*"]}` and no `ask` entry for Playwright tools (`ask` beats `allow`).
 - Playwright MCP lives at **user scope** (one server for every repo), pinned so `npx` doesn't re-resolve `@latest` on every start (that is what times out): `claude mcp remove playwright -s user` then `claude mcp add --scope user playwright -- npx -y @playwright/mcp@0.0.84`. Don't add a project `.mcp.json` for it: two scopes conflict.
-- Plugins: ponytail, claude-mem, last30days. Skills: impeccable, graphify, emil-design-eng, apple-design.
+- Plugins: ponytail, claude-mem, last30days. `.claude/settings.json` declares all three
+  (`enabledPlugins` + `extraKnownMarketplaces`), so Claude Code offers to install them when a clone
+  is trusted. By hand: `/plugin marketplace add DietrichGebert/ponytail` then
+  `/plugin install ponytail@ponytail`; same for `thedotmack/claude-mem` (`claude-mem@thedotmack`) and
+  `mvanhorn/last30days-skill` (`last30days@last30days-skill`).
+- Skills (user scope, `~/.claude/skills/`): impeccable, graphify, emil-design-eng, apple-design.
+  graphify also needs its CLI on PATH; build a graph only once `src/` passes ~150 files.
+- Workflow the kit enforces: research starts with `/last30days`, then WebSearch / deep-research /
+  Playwright; an approved plan runs under ponytail full with phases in claude-mem `work_state_write`
+  (`plan-capture.js` injects that rule on approval); a pass ends with `/ponytail-review`.
 - `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` in user settings; agents that need Opus say so in their frontmatter.
 
 ## Updating the kit
@@ -66,6 +75,9 @@ never a component, stylesheet, palette, plan, STATUS text or client fact. Before
 
 ## Changelog
 
+- 2026-11-09: tool rules. Project settings declare ponytail, claude-mem and last30days; plan-capture
+  injects the "execute under ponytail, track in work_state" rule on approval (tested); research order
+  (last30days first) in CLAUDE.md; `/kickoff` warns when a plugin or graphify is missing.
 - 2026-11-09: clean-start pass. Template-repo start with fresh history; `/kickoff` guards against
   copied folders and kit history, fills `site.js`/`public/`, deletes this file; client names moved to
   `~/.claude/client-names.txt`; STATUS.md is narrative only (no git snapshot, no plan log);

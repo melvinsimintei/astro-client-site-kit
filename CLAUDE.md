@@ -12,7 +12,7 @@ from any other client repo.
 - Stage or commit only when I ask; every `git commit` waits for my approval (the PreToolUse hook asks). You may recommend a commit.
 - Never git push. I always push to GitHub manually from my own terminal (the hook and settings block it).
 - When I say "commit this with message X", use that exact message.
-- Once I approve a plan, execute every phase in one run without stopping between phases. Stop only when the whole plan is done, or when blocked by something the plan didn't anticipate (then ask). Outside an approved plan, stop after a code change and wait for my approval.
+- Once I approve a plan, execute every phase in one run without stopping between phases, under ponytail full (lite for copy/docs), with the phases tracked in claude-mem `work_state_write`. Stop only when the whole plan is done, or when blocked by something the plan didn't anticipate (then ask). Outside an approved plan, stop after a code change and wait for my approval.
 - Before planning or unplanned changes, explore with targeted Grep/Read yourself; invoke the codebase-explorer agent only when that can't answer it or I ask.
 - Don't run the code-reviewer automatically. At the end of a pass, recommend `/review` (and say what it should focus on). Run it only when I ask.
 - Approved plans are saved to `docs/plans/ACTIVE_PLAN.md` by a hook and re-injected at session start. When an approved plan is finished, set its `Status:` line to `done` and update the `docs/plans/STATUS.md` narrative.
@@ -21,13 +21,14 @@ from any other client repo.
 ## Model routing (switch with `/model`)
 | Phase | Model | Skills / tools |
 |---|---|---|
-| Research (facts, competitors, patient worries, differentiators) | Opus | WebSearch, deep-research, last30days, Playwright |
+| Research (facts, competitors, patient worries, differentiators) | Opus | last30days first, then WebSearch, deep-research, Playwright |
 | Design direction, page architecture, sitemap | Opus | impeccable (critique), emil-design-eng, apple-design |
 | Foundation and page build | Opus | ponytail full |
 | Content fill, copy batches, small touch-ups | Sonnet | ponytail lite |
 | QA | Opus | impeccable audit, `/audit`, then `/review` (I run it) |
 
 ## Skills and token rules
+- **research:** start with `/last30days` for what patients and competitors are saying now. Then use whatever fits: WebSearch (standard, extended only when thin), deep-research for multi-source reports, Playwright for GBP and live sites, the clinic skills (`nairobi-clinic-benchmark`, `clinic-demo-intake`). Facts in `site.js` need a primary source (GBP, the clinic's own site, a regulator register). last30days chatter goes to the confirm ledger, never into Clinic configuration.
 - **ponytail:** `full` for code, `lite` for docs/prose. End of a build pass: `/ponytail-review`, then `/ponytail-debt` for `shortcut:` comments.
 - **claude-mem:** `work_state_write` is the to-do list for every multi-step pass (open items resurface after `/clear`). `save_memory` only for durable decisions. `mem-search` only on cues ("last time", "did we").
 - **graphify:** only once `src/` passes ~150 files; below that Grep is cheaper.

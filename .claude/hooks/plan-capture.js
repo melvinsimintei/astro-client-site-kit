@@ -20,6 +20,9 @@ import path from "path";
 
 const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
 const activePlanPath = path.join(projectDir, "docs", "plans", "ACTIVE_PLAN.md");
+const EXECUTE_RULE =
+  "Plan approved: execute every phase under ponytail full (lite for copy/docs); track the phases " +
+  "with claude-mem work_state_write; end with /ponytail-review and /ponytail-debt, then recommend /review.";
 
 function readIfFile(filePath) {
   try {
@@ -63,6 +66,8 @@ process.stdin.on("end", () => {
       fs.mkdirSync(path.dirname(activePlanPath), { recursive: true });
       fs.writeFileSync(activePlanPath, content, "utf8");
     }
+    // Ponytail is on all session; this ties it to the execution phase explicitly.
+    console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: EXECUTE_RULE } }));
   } catch {
     // best-effort
   }

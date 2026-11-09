@@ -1,59 +1,55 @@
 <!-- Written by .claude/hooks/plan-capture.js on plan approval. Set the Status line to `done` when the plan is finished. -->
 Status: done
-Approved: 2026-11-09T02:58:14.193Z
+Approved: 2026-11-09T09:20:49.353Z
 
-# Fix the 9 review findings on the kit's clean-start pass
-
-Status: approved
+# Make claude-mem, graphify, ponytail and research-first rules hold in every kit clone
 
 ## Context
-The `/review` run gave NEEDS CHANGES: 2 major (the read-only guard on the code-reviewer can be bypassed), 4 minor, 3 nits.
-The owner wants every finding fixed before committing and pushing manually. No commit, no push.
+Question: will a project cloned from this kit really use claude-mem, graphify, ponytail (for executing approved plans) and last30days (plus other research methods)?
 
-## Phase 1: Reviewer guard (`.claude/hooks/pre-tool-use.js`): findings 1 and 2
-- **The lone `&` bypass:** in `isReviewerSafe`, after `stripped` is built (`2>&1` is already removed by then), add
-  `if (/(^|[^&])&(?!&)/.test(stripped)) return false;`
-  This blocks a background `&` and PowerShell's `&` call operator, and still allows `&&`.
-- **sed:** remove sed from the reviewer entirely. `head`, `tail` and Read already cover reading lines.
-  - Drop `sed\s+-n` from the `REVIEWER_ALLOWED` regex (line 58).
-  - Delete the sed denylist block (lines 68-71).
-  - An allowlist beats patching the denylist one form at a time.
-- Update the header comment (lines 11-12) and the block message (line 143) if they name sed. They don't today, so check only.
+What's already there:
+- **On this machine: mostly yes.** `~/.claude/settings.json` turns on `ponytail`, `claude-mem` and `last30days` for every repo. `graphify` is a user skill, and the `graph-first.js` hook is user-scope. Your global `~/.claude/CLAUDE.md` holds the token-saving lookup order.
+- **The kit's `CLAUDE.md`** has the Skills/token rules and the model-routing table. `/kickoff` step 11 opens a claude-mem phase list. `docs/KIT.md` lists the plugins as machine setup.
 
-## Phase 2: Tests (`.claude/hooks/pre-tool-use.test.mjs`)
-- Line 48, `sed -n '1,200p'`: the expected result changes from allow to BLOCK.
-- New BLOCK cases for the reviewer:
-  - `ls & npm install x`
-  - `ls&node -e x`
-  - `& node -e x`
-  - `sed -n '1,5w out' f`
-  - `sed -n '1e cmd' f`
-  - `sed -n 's/x/y/e' f`
-  - `sed -n -Ei 's/a/b/' f`
-- A new allow case for the reviewer: `npm test && git status`.
-- The `npm run build 2>&1 | tail -20` case (line 46) stays allow. It proves the `&` check ignores `>&N`.
+Gaps:
+1. **Nothing is set at repo level.** The kit's `.claude/settings.json` has no `enabledPlugins` and no `extraKnownMarketplaces`. A clone on another laptop, or after a reinstall, quietly runs without ponytail, claude-mem or last30days.
+2. **Ponytail isn't tied to plan approval.** It runs because the plugin's SessionStart hook turns it on. When a plan is approved, nothing says "now run it under ponytail full, track the phases in work_state, and finish with `/ponytail-review`".
+3. **Research has no order.** The routing table lists `WebSearch, deep-research, last30days, Playwright` side by side. No rule says last30days goes first for what people are saying, or that verified facts (NAP, licensing, hours) need primary sources.
+4. **Nothing checks the tools exist.** `/kickoff` never checks whether the plugins, the graphify skill or the CLI are installed.
+5. **Your global rules only partly cover this.** `~/.claude/CLAUDE.md` covers memory and graph, but not ponytail-on-approval or research-first. Those apply to every project, not only kit clones.
 
-## Phase 3: Minor fixes
-- **Finding 3, `.claude/hooks/sync-status.js:51`:** compare after normalising line endings.
-  Add `const norm = (s) => s.replace(/\r\n/g, "\n").trim();` and use it on both sides of the comparison.
-  The reviewer gave line 249; the real line is 51.
-- **Finding 4, `.gitignore:15-18`:** replace the three `.env` lines with `.env`, `.env.*` and `!.env.example`.
-- **Finding 5, `.claude/commands/kickoff.md` step 9:** "copy `.env.example` to `.env`; if a live URL was given, set `PUBLIC_SITE_URL=<url>/` in `.env` (edit that one line, never print the file) and tell the owner to set the same variable on the host".
-  This matches step 7's `Sitemap:` line, so robots.txt no longer points at a sitemap that is never built.
-- **Finding 6, `astro.config.mjs:6-7`: the code is correct, so only the comment changes.**
-  - Checked in `node_modules/astro/dist/core/dev/dev.js:24`: `astro dev` calls `ensureProcessNodeEnv("development")` before it loads the config.
-  - So the dev server reads `.env.development`, and the reviewer's concern doesn't apply.
-  - Extend the comment: "astro dev/build set NODE_ENV before loading this file; the fallback covers bare tooling."
+## Changes
 
-## Phase 4: Nits
-- **Finding 7, `README.md:4`:** no change. "The Preferred Clinic System" is the owner's own agency brand (their dental-clinic skills use it), not a client.
-- **Finding 8, `.claude/commands/verify-live.md:17`:** change "(Commit 5 sets this up)" to "(registered once at user scope, see docs/KIT.md)".
-- **Finding 9, `.claude/hooks/session-start.js`:** add the missing space at line 112 (`status.trim(), narrativeShare`) and remove one of the two blank lines at 61-62.
+### 1. Declare the plugins at project level: `.claude/settings.json`
+Add `enabledPlugins` (`ponytail@ponytail`, `claude-mem@thedotmack`, `last30days@last30days-skill`: true) and `extraKnownMarketplaces` (`DietrichGebert/ponytail`, `thedotmack/claude-mem`, `mvanhorn/last30days-skill`). The values come from `~/.claude/plugins/known_marketplaces.json`. Claude Code then offers to install them when a clone is trusted on any machine. This does nothing extra on this laptop, where they're already on.
 
-## Phase 5: Verify and wrap up
-- Run `npm test`. It must pass with 51 − 0 + 8 = 59 cases, every one passing.
-- Run `npm run build` and `npx astro check`: 0 errors, 0 warnings, 0 hints.
-- Run a manual hook check: `echo '{"hook_event_name":"Stop"}' | node .claude/hooks/sync-status.js`. With uncommitted changes and an untouched CRLF STATUS.md, it should now print the reminder.
-- `git check-ignore .env.development .env.staging` should print both paths; `git check-ignore .env.example` should print nothing.
-- Add one line to `docs/plans/STATUS.md` Decisions: "2026-11-09: review fixes: reviewer guard drops sed and rejects a lone `&`; `.env.*` ignored; kickoff sets PUBLIC_SITE_URL."
-- Set this plan's `Status:` to done. Recommend `/review`, focused on the `pre-tool-use.js` guard. No commit; the owner commits and pushes.
+### 2. Tie ponytail to plan approval: `.claude/hooks/plan-capture.js`
+After writing ACTIVE_PLAN.md, print a PostToolUse `additionalContext` line, the same JSON shape `graph-first.js` uses:
+"Plan approved: execute every phase under ponytail full (lite for copy/docs); track the phases with claude-mem `work_state_write`; end with `/ponytail-review` + `/ponytail-debt`, then recommend `/review`."
+It stays best-effort and always exits 0. Add one assert to the self-check the same way `graph-first.js --test` does, or extend `pre-tool-use.test.mjs` if that's where hook tests live.
+
+### 3. Research order and plan execution: kit `CLAUDE.md`
+- In **Skills and token rules**, add a **research** line: "Start with `/last30days` for what patients and competitors are saying. Then WebSearch (standard, extended only when thin), deep-research for multi-source reports, Playwright for GBP and live sites, and the clinic skills (`nairobi-clinic-benchmark`, `clinic-demo-intake`) when they fit. Facts that go into `site.js` need a primary source. last30days chatter goes to the confirm ledger, never into Clinic configuration."
+- In **Session Rules**, extend the approved-plan bullet: "...executed under ponytail full, phases tracked in `work_state_write`."
+- Update the `session-start.js` Session Rules string (line ~30) by one clause to match.
+
+### 4. Tool check in `/kickoff`: `.claude/commands/kickoff.md`
+Add a step after Guards that warns but never blocks. Read `enabledPlugins` in `~/.claude/settings.json` for the three plugins and check that `~/.claude/skills/graphify` exists. List anything missing, with the install command from `docs/KIT.md`.
+
+### 5. `docs/KIT.md`
+- Machine setup: add install commands (`/plugin marketplace add …`, `/plugin install …`, graphify skill and CLI). Note that the project settings now prompt for these.
+- Changelog line.
+
+### 6. Global rules: `~/.claude/CLAUDE.md` (outside the repo, all projects)
+Add two lines under "Token-saving defaults":
+- "Approved plan → execute under ponytail full; to-dos in claude-mem `work_state_write`; end with `/ponytail-review`."
+- "Research → `/last30days` first for current chatter, then WebSearch / deep-research / Playwright as needed; facts need primary sources."
+
+Skipped on purpose: a graphify hook or setting in the kit. The 150-file rule and the global `graph-first.js` already cover it, and building graphs for small repos costs tokens.
+
+## Verification
+- `npm test` (hook tests, including the new plan-capture assert) and `npm run build` pass clean.
+- Pipe a fake ExitPlanMode payload into `plan-capture.js` and confirm it writes ACTIVE_PLAN.md and prints the reminder JSON. Then restore the stub.
+- Run `node .claude/hooks/session-start.js` and confirm the rules string includes the ponytail clause.
+- Fresh-copy check from `docs/KIT.md` step 4: in a scratch clone, `/plugin` lists the three as declared by the project.
+- Client-name leak grep: zero hits.

@@ -28,7 +28,8 @@ const BUDGET = 9000;
 
 const RULES =
   "Session Rules (CLAUDE.md): targeted Grep/Read before planning; codebase-explorer " +
-  "only when that can't answer or when asked. An approved plan runs end-to-end without stopping between phases; " +
+  "only when that can't answer or when asked. An approved plan runs end-to-end without stopping between phases, " +
+  "under ponytail full, phases tracked in claude-mem work_state_write; " +
   "set ACTIVE_PLAN.md's Status to done when finished. Recommend /review at the " +
   "end of a pass, never run the code-reviewer automatically. Never git " +
   "add/commit unless told; never push (the owner pushes manually). Update STATUS.md's narrative when a pass completes.";

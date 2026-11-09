@@ -19,6 +19,10 @@ no notes from other repos.
    - `.claude/agent-memory/`, `.claude/settings.local.json` or `.env` exist: the kit folder was
      copied, not cloned, and carries this machine's notes and keys from other repos. The owner
      deletes them, then re-runs `/kickoff`. (Check existence only; never read `.env`.)
+   **Tool check (warn, never stop):** in `~/.claude/settings.json` `enabledPlugins`, look for
+   `ponytail@ponytail`, `claude-mem@thedotmack` and `last30days@last30days-skill` set to true, and
+   check that `~/.claude/skills/graphify/` exists. List anything missing with its install line from
+   docs/KIT.md "Machine setup" (read it before step 8 deletes it).
 2. **README.md:** it is the client template. Replace every `[CLIENT NAME]`, `[SLUG]` and `[SITE_URL]`
    (leave `[SITE_URL]` as "not live yet" if no URL was given). Delete the template's HTML comment.
 3. **CLAUDE.md:** replace `[CLIENT NAME]` in the title and Status. Leave the other `[PLACEHOLDER]`

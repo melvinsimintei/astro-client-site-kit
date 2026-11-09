@@ -12,5 +12,6 @@ Not kicked off yet: run `/kickoff "<Client Name>" <slug>`.
 
 ## Decisions
 - 2026-11-09: review fixes: the reviewer guard drops sed and rejects a lone `&`; `.env.*` is gitignored; `/kickoff` sets PUBLIC_SITE_URL when given a live URL.
+- 2026-11-09: tool rules: project settings declare ponytail/claude-mem/last30days; plan approval injects "execute under ponytail, track in work_state"; research starts with last30days; `/kickoff` warns on missing tools.
 
 ## What's Next

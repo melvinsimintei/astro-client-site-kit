@@ -1,6 +1,8 @@
 // Self-check for pre-tool-use.js: node .claude/hooks/pre-tool-use.test.mjs
 // "pu"+"sh" keeps the guard from blocking any shell command that names this file's contents.
 import { spawnSync } from "child_process";
+import fs from "fs";
+import os from "os";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -91,4 +93,16 @@ for (const [agent, tool, arg, want] of cases) {
   }
 }
 console.log(`${cases.length - bad}/${cases.length} passed`);
-process.exit(bad ? 1 : 0);
+
+// plan-capture.js: writes ACTIVE_PLAN.md into a scratch project and prints the execute rule.
+const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "plan-capture-"));
+const pc = spawnSync("node", [path.join(here, "plan-capture.js")], {
+  input: JSON.stringify({ tool_input: { plan: "# Test plan" } }),
+  encoding: "utf8",
+  env: { ...process.env, CLAUDE_PROJECT_DIR: scratch },
+});
+const saved = fs.readFileSync(path.join(scratch, "docs", "plans", "ACTIVE_PLAN.md"), "utf8");
+const pcOk = pc.status === 0 && saved.includes("# Test plan") && pc.stdout.includes("ponytail full");
+console.log(`plan-capture ${pcOk ? "ok" : "FAIL"}`);
+fs.rmSync(scratch, { recursive: true, force: true });
+process.exit(bad || !pcOk ? 1 : 0);

@@ -1,4 +1,14 @@
 {
+  "enabledPlugins": {
+    "ponytail@ponytail": true,
+    "claude-mem@thedotmack": true,
+    "last30days@last30days-skill": true
+  },
+  "extraKnownMarketplaces": {
+    "ponytail": { "source": { "source": "github", "repo": "DietrichGebert/ponytail" } },
+    "thedotmack": { "source": { "source": "github", "repo": "thedotmack/claude-mem" } },
+    "last30days-skill": { "source": { "source": "github", "repo": "mvanhorn/last30days-skill" } }
+  },
   "permissions": {
     "allow": [
       "Bash(npm run build)",
