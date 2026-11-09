@@ -1,28 +1,22 @@
-# /review — Code Reviewer Command
-#
-# HOW TO USE:
-#   /review
-#   /review src/components/Hero.astro   ← review a specific file
-#
-# WHAT HAPPENS:
-#   Triggers the code-reviewer subagent
-#   Reviewer reads git diff to see what changed since last commit
-#   Returns a pass/fail verdict with specific issues listed
-#
-# IMPORTANT RULE:
-#   Always run /review in a FRESH Claude Code session
-#   Never review code in the same session that wrote it
-#   Fresh eyes = unbiased review (no memory of why you made choices)
+---
+description: Run the code-reviewer agent on uncommitted changes (optionally focused on a file)
+argument-hint: "[file]"
+---
 
-Use the code-reviewer subagent to review: $ARGUMENTS
+Use the code-reviewer agent to review: $ARGUMENTS (all uncommitted changes if empty).
 
 The reviewer must:
-1. Run 'git diff HEAD' to see all changes since last commit
-2. If $ARGUMENTS is a specific file, focus review there first
-3. Check for: broken placeholders, hardcoded content, missing alt text,
-   accessibility issues, color variables used correctly, form inputs valid
-4. Return a verdict: PASS or FAIL
-5. If FAIL: list each issue with the exact file and line number
-6. If PASS: confirm what was checked and give green light to commit
+1. Run `git status --short` and `git diff HEAD` to see every change since the last commit,
+   including untracked files. If $ARGUMENTS names a file, review it first.
+2. Run `npm run build`, `npx astro check` and `npm test`. Warnings count. If the shell is
+   unavailable, say so explicitly; never imply the build passed.
+3. Check against CLAUDE.md (rules, QA gate, banned words) and the project's design-system doc
+   (run its review greps): mobile-first, Astro Image for raster images, form key from an env var
+   (never hardcoded), phone pattern `[0-9]{10}`, WhatsApp as `wa.me/254…`, NAP/hours only from the
+   one config file in `src/config/`, no fabricated people/reviews/counts, every fill item logged.
+4. If `docs/plans/ACTIVE_PLAN.md` covers this work, compare plan vs build phase by phase.
+5. Return **APPROVED** or **NEEDS CHANGES**, every finding with `file:line` and a severity.
+6. Remind the user to update the `docs/plans/STATUS.md` narrative if the pass completes work.
 
-Rule: No code changes. No npm install. Read and judge only.
+Best run in a fresh session (`/clear` first): no memory of why choices were made.
+Read and judge only. No edits, no installs, no git mutations.

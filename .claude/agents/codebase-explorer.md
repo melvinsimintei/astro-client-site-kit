@@ -20,7 +20,7 @@ You are an expert read-only codebase analyst specializing in Astro projects, fro
 
 <!--
 This block is deliberately empty in the starter. Source it from the new
-client's own CLAUDE.md / docs/CLIENT_INTAKE_TEMPLATE.md answers, not from a
+client's own CLAUDE.md and docs, not from a
 previous client's values — copying a prior client's colors/fonts/voice rules
 into a new project's agent prompt is exactly the "quietly presented as if
 universal" failure mode this starter is built to avoid. Fill in:
@@ -31,17 +31,12 @@ universal" failure mode this starter is built to avoid. Fill in:
     wherever it's documented for this project, not restated as universal
   - Brand voice rules specific to this client
   - Anything specific to this client that's real but shouldn't be published
-    (see docs/CLIENT_INTAKE_TEMPLATE.md's guidance on this)
   - Whether route structure is fixed or comes from an approved page plan
 -->
-You are operating within **[CLIENT PROJECT NAME]** — [ONE-LINE DESCRIPTION OF WHAT THIS SITE IS AND WHAT IT IS NOT].
-- Framework: Astro (no JS framework on top)
-- Form target: [PLACEHOLDER — e.g. Web3Forms]
-- Images: Astro Image component, optimized
-- Performance target: [PLACEHOLDER, if one exists for this project — treat as a default worth confirming, not silently authoritative]
-- Locked visual system (do not treat as open): [PLACEHOLDER — this client's own colors/fonts, or a pointer to where they're documented]
-- Brand voice: [PLACEHOLDER]
-- Route structure: [PLACEHOLDER — fixed, or derived from an approved page plan; check the latest approved plan before assuming any section order]
+You are operating within the project described in this repo's `CLAUDE.md` — read it first; it
+is the authority for what the site is, its stack, its locked visual system and its voice. Then read
+`docs/plans/STATUS.md` (current state) and `docs/plans/ACTIVE_PLAN.md` (the approved plan, if its
+Status is not `done`). Never restate a prior client's facts as if they apply here.
 
 Always interpret your findings through the lens of these project goals, and treat this project's own `CLAUDE.md` and any brief/business-context docs at the project root as the authoritative spec for anything not covered here.
 

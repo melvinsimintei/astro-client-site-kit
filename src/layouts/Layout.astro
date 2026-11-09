@@ -1,121 +1,17 @@
 ---
-// Font files are NOT imported here by default — see src/styles/global.css's
-// header comment. If the new client has a locked type system, self-host +
-// subset the actual font files (the practice this starter carries forward)
-// and add the @font-face/@fontsource imports + preload link back in here.
-// Don't default back to a previous client's font choice.
-import '../styles/global.css';
-import { organizationSchema, websiteSchema } from '../lib/schema.js';
+// Bare shell so the kit builds. Write the real layout from scratch per client.
 import { site } from '../config/site.js';
-
-export interface Props {
-  title: string;
-  description: string;
-  canonicalUrl?: string;
-  image?: string;
-  noindex?: boolean;
-  schema?: object[];
-}
-
-const {
-  title,
-  description,
-  // No canonical/OG URL is emitted until a real site URL is set (astro.config.mjs `site`) —
-  // a guessed domain would be worse than no canonical tag at all. Same reasoning
-  // applies to ogImageUrl and jsonLd below — don't "fix" this by removing the guard.
-  canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).toString() : undefined,
-  image = '/og-image.png',
-  noindex = false,
-  schema = [],
-} = Astro.props;
-
-const ogImageUrl = Astro.site ? new URL(image, Astro.site).toString() : undefined;
-
-const fullTitle = title.includes(site.name) ? title : `${title} | ${site.name}`;
-
-const jsonLd = Astro.site
-  ? {
-      '@context': 'https://schema.org',
-      '@graph': [
-        organizationSchema(Astro.site.toString(), site),
-        websiteSchema(Astro.site.toString(), site),
-        ...schema,
-      ],
-    }
-  : null;
+const { title = site.name, noindex = !site.publicLaunch } = Astro.props;
 ---
-
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="generator" content={Astro.generator} />
-    {noindex && <meta name="robots" content="noindex, follow" />}
-
-    <title>{fullTitle}</title>
-    <meta name="description" content={description} />
-    {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
-
-    <!-- Open Graph -->
-    <meta property="og:type" content="website" />
-    {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
-    <meta property="og:title" content={fullTitle} />
-    <meta property="og:description" content={description} />
-    <meta property="og:locale" content="en" />
-    <meta property="og:site_name" content={site.name} />
-    {ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
-    {ogImageUrl && <meta property="og:image:width" content="1200" />}
-    {ogImageUrl && <meta property="og:image:height" content="630" />}
-
-    <!-- Twitter / X card -->
-    <meta name="twitter:card" content={ogImageUrl ? 'summary_large_image' : 'summary'} />
-    <meta name="twitter:title" content={fullTitle} />
-    <meta name="twitter:description" content={description} />
-    {ogImageUrl && <meta name="twitter:image" content={ogImageUrl} />}
-
-    <!-- Favicon: add /public/favicon.svg + /public/favicon.ico per client — none
-         ships by default here, a placeholder favicon would be its own design
-         choice. ?v= is a manual cache-bust — public/ files aren't content-hashed
-         by Astro, and browsers cache favicons far more aggressively than normal
-         assets. Bump the version whenever the favicon file is replaced. -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=1" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=1" />
-
-    <!-- Structured data (schema.org) for search engines and AI agents -->
-    {jsonLd && <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />}
+    {noindex && <meta name="robots" content="noindex" />}
+    <title>{title}</title>
   </head>
   <body>
-    <a href="#main" class="skip-link">Skip to content</a>
-    <!-- Header/footer are deliberately NOT imported here — every client's nav
-         structure differs enough that a fixed default invites reuse-by-default
-         instead of a fresh build. Pass your own via these named slots; see
-         docs/patterns/SiteHeader.example.astro and SiteFooter.example.astro
-         for the responsive-nav techniques worth reusing (not the content). -->
-    <slot name="header" />
-    <main id="main">
-      <slot />
-    </main>
-    <slot name="footer" />
-    <script>
-      import '../scripts/reveal.js';
-    </script>
+    <main><slot /></main>
   </body>
 </html>
-
-<style is:global>
-  .skip-link {
-    position: absolute;
-    left: -9999px;
-    top: 0;
-    z-index: 100;
-    background: var(--action-primary-bg);
-    color: var(--text-on-inverse);
-    padding: var(--space-3) var(--space-6);
-    border-radius: 0 0 var(--radius-md) 0;
-  }
-
-  .skip-link:focus {
-    left: 0;
-  }
-</style>

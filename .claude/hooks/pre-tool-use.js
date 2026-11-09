@@ -1,100 +1,156 @@
 /**
- * pre-tool-use.js — Runs BEFORE every tool Claude tries to execute
+ * pre-tool-use.js — PreToolUse hook, matcher "Bash|PowerShell|Write|Edit|NotebookEdit".
  *
- * HOW CLAUDE CODE HOOKS WORK:
- * Claude Code passes information about the tool call to this script
- * via standard input (stdin) as a JSON object.
- * This script reads that JSON, checks the rules, and either:
- *   - Exits with code 0  → allow the tool to run
- *   - Exits with code 2  → block the tool and show the reason
+ * Enforces CLAUDE.md's Session Rules at the harness level:
+ *   - git push → block (Claude never pushes; the owner pushes manually)
+ *   - git commit → "ask" (the owner approves each commit); git add passes through.
+ *     Both match through git's global flags (git -C dir, -c k=v, --no-pager).
+ *   - recursive force-delete (rm -rf, Remove-Item -Recurse -Force) → block
+ *   - printing .env (cat/grep/Get-Content … .env, or a recursive grep over the
+ *     repo root without --exclude=.env*) → block; .env.example is fine
+ *   - code-reviewer subagent → read-only commands only (git diff/log/status/
+ *     show, npm run build, npm test, npx astro check, grep/ls/cat) → anything else blocked;
+ *     its file writes (Write/Edit, granted by `memory: project`) are limited to
+ *     its own memory directory.
  *
- * THE JSON CLAUDE CODE SENDS LOOKS LIKE THIS:
- * {
- *   "tool_name": "Bash",
- *   "tool_input": { "command": "git push origin main" },
- *   "agent_name": "code-reviewer"
- * }
+ * Exit 2 blocks and shows stderr to Claude. JSON on stdout with
+ * permissionDecision "ask" prompts the owner. Exit 0 allows.
+ * Tests: node .claude/hooks/pre-tool-use.test.mjs
  */
 
-// 'process' is a built-in Node.js object
-// It gives you access to the running process — inputs, outputs, exit codes
+import path from "path";
 
-// We will build up the incoming JSON string chunk by chunk
-// Start with an empty string
 let inputData = "";
-
-// 'process.stdin' is the standard input stream
-// Think of it like a pipe — Claude Code pours data in, we read it here
-// 'on("data")' fires every time a new chunk of data arrives
 process.stdin.on("data", (chunk) => {
-  // Each chunk is a piece of the JSON string
-  // We add it to inputData until the full message arrives
   inputData += chunk;
 });
 
-// 'on("end")' fires when Claude Code has finished sending all the data
-// This is where we do our actual work
+function block(reason) {
+  console.error(`BLOCKED: ${reason}`);
+  process.exit(2);
+}
+
+function ask(reason) {
+  console.log(
+    JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "ask",
+        permissionDecisionReason: reason,
+      },
+    })
+  );
+  process.exit(0);
+}
+
+// `git` plus any global options before the subcommand.
+const GIT = String.raw`\bgit(?:\s+(?:-[Cc]\s+\S+|--(?:git-dir|work-tree|namespace)\s+\S+|--?[\w-]+(?:=\S+)?))*\s+`;
+const gitSub = (sub) => new RegExp(`${GIT}${sub}\\b`, "i");
+
+// Each segment of a chained command must match one of these for the reviewer.
+const REVIEWER_ALLOWED = [
+  /^git\s+(diff|log|status|show|ls-files|rev-parse)\b/,
+  /^git\s+branch(\s+(-a|-r|-v|-vv|--all|--remotes|--list|--show-current|--merged|--no-merged))*\s*$/,
+  /^npm\s+run\s+build\b/,
+  /^npm\s+test\b/,
+  /^node\s+\.claude[\/\\]hooks[\/\\]pre-tool-use\.test\.mjs\b/,
+  /^npx\s+astro\s+check\b/,
+  // No sed: its w/e commands and -i write files or run commands; head/tail cover reading.
+  /^(grep|rg|ls|cat|head|tail|wc|find|echo|pwd|test)\b/,
+  /^(Get-ChildItem|Get-Content|Select-String|Test-Path)\b/i,
+];
+
+function isReviewerSafe(command) {
+  // Substitutions, newlines and command-running/write-capable flags can
+  // smuggle a second command past the prefix match below.
+  if (/`|\$\(|<\(|[\r\n]|--output\b|--pre\b|\s-(delete|exec|execdir|ok|okdir|fprint\w*|fls)\b/.test(command)) {
+    return false;
+  }
+  // Quoted text (grep patterns etc.) can't run anything; drop it so its | ; >
+  // aren't read as operators.
+  const unquoted = command.replace(/"(?:[^"\\]|\\.)*"|'[^']*'/g, "''");
+  // Stream merges and discards are fine; any other redirect writes a file.
+  const stripped = unquoted.replace(/\d?>&\d|\d?>\s*\/dev\/null|\d?>\s*\$null/g, "");
+  if (/>|\btee\b|\bxargs\b/.test(stripped)) return false;
+  // A lone & backgrounds a second command (or is PowerShell's call operator); && is fine.
+  if (/(^|[^&])&(?!&)/.test(stripped)) return false;
+  return stripped
+    .split(/&&|\|\||;|\|/)
+    .map((part) =>
+      part
+        .trim()
+        .replace(/^cd\s+\S+\s*$/, "")
+        .replace(/^git(\s+(-C\s+\S+|--no-pager))+/, "git")
+    )
+    .filter(Boolean)
+    .every((part) => REVIEWER_ALLOWED.some((re) => re.test(part)));
+}
+
+const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const reviewerMemoryDir = path.resolve(projectDir, ".claude", "agent-memory", "code-reviewer");
+
+function inReviewerMemory(filePath) {
+  const rel = path.relative(reviewerMemoryDir, path.resolve(projectDir, String(filePath || "")));
+  return rel !== "" && !rel.startsWith("..") && !path.isAbsolute(rel);
+}
+
 process.stdin.on("end", () => {
-
-  // Parse the JSON string into a real JavaScript object
-  // so we can read tool_name, tool_input, agent_name
-  const toolCall = JSON.parse(inputData);
-
-  // Destructure the three fields we care about
-  // This is shorthand for:
-  //   const tool_name = toolCall.tool_name
-  //   const tool_input = toolCall.tool_input
-  //   const agent_name = toolCall.agent_name
-  const { tool_name, tool_input, agent_name } = toolCall;
-
-  // ─────────────────────────────────────────
-  // GUARD 1 — Block git push without approval
-  // ─────────────────────────────────────────
-  // Check if the tool is Bash AND the command contains "git push"
-  // 'tool_input.command' is the actual bash command Claude wants to run
-  // '.includes()' returns true if the string contains that substring
-  if (tool_name === "Bash" && tool_input.command?.includes("git push")) {
-
-    // Print a clear reason to the screen so you know why it was blocked
-    console.error("BLOCKED: git push is not allowed automatically.");
-    console.error("Run /review first, get a PASS verdict, then push manually.");
-
-    // Exit code 2 tells Claude Code: BLOCK this tool call
-    // Exit code 0 would mean: allow it
-    // Exit code 1 means: something went wrong in the hook itself
-    process.exit(2);
+  let payload;
+  try {
+    payload = JSON.parse(inputData || "{}");
+  } catch {
+    process.exit(0); // never break tool use over a malformed payload
   }
 
-  // ─────────────────────────────────────────────────────
-  // GUARD 2 — Block npm install inside the reviewer agent
-  // ─────────────────────────────────────────────────────
-  // The reviewer should only read files and run git diff
-  // It must never install packages — that changes the project state
-  if (
-    agent_name === "code-reviewer" &&
-    tool_name === "Bash" &&
-    tool_input.command?.includes("npm install")
-  ) {
-    console.error("BLOCKED: code-reviewer cannot run npm install.");
-    console.error("The reviewer reads and judges only. It cannot change anything.");
-    process.exit(2);
+  const { tool_name, tool_input = {}, agent_type } = payload;
+
+  if (["Write", "Edit", "NotebookEdit"].includes(tool_name)) {
+    if (agent_type === "code-reviewer" && !inReviewerMemory(tool_input.file_path || tool_input.notebook_path)) {
+      block("code-reviewer is read-only. It may only write inside .claude/agent-memory/code-reviewer/.");
+    }
+    process.exit(0);
   }
 
-  // ─────────────────────────────────────────────────────
-  // GUARD 3 — Block rm -rf (permanent file deletion)
-  // ─────────────────────────────────────────────────────
-  // rm -rf deletes files instantly with no recycle bin
-  // There is almost never a good reason for Claude to run this
-  if (tool_name === "Bash" && tool_input.command?.includes("rm -rf")) {
-    console.error("BLOCKED: rm -rf is not allowed.");
-    console.error("Delete files manually if you truly need to remove something.");
-    process.exit(2);
+  if (tool_name !== "Bash" && tool_name !== "PowerShell") process.exit(0);
+
+  const command = String(tool_input.command || "");
+
+  const rmRecursive = /\brm\b(?=[^;&|\n]*\s(-[a-z]*r[a-z]*|--recursive)\b)(?=[^;&|\n]*\s(-[a-z]*f[a-z]*|--force)\b)/i;
+  if (rmRecursive.test(command) || /Remove-Item\b(?=.*-Recurse)(?=.*-Force)/i.test(command)) {
+    block("recursive force-delete is not allowed. Delete manually if you truly need to.");
   }
 
-  // ─────────────────────────────────────────
-  // ALL GUARDS PASSED — allow the tool to run
-  // ─────────────────────────────────────────
-  // If we reach this line, none of the guards fired
-  // Exit code 0 tells Claude Code: proceed normally
+  // Keys live in .env and must never reach the transcript.
+  // `.env` counts only as a path word, so `grep "process.env"` is fine.
+  const printsEnv =
+    /(?:^|[;&|(\n])\s*(cat|type|more|less|head|tail|grep|rg|findstr|sed|awk|bat|Get-Content|gc|Select-String|sls)\b[^;&|\n]*(?:^|[\s\/\\'"])\.env(?!\.example)\b/i;
+  // grep ignores .gitignore, so a recursive grep of the repo root prints .env too.
+  // shortcut: treats the first non-flag word as the pattern (misreads `-e PAT`), fine for a guard.
+  const unquotedCmd = command.replace(/(=)?("(?:[^"\\]|\\.)*"|'[^']*')/g, (_, eq, q) => (eq ? "=" + q.slice(1, -1) : "PAT"));
+  const grepsRoot = (unquotedCmd.match(/(?:^|[;&|(\n])\s*grep\b[^;&|\n]*/gi) || []).some((seg) => {
+    if (!/\s(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)\b/.test(seg) || /--exclude=\.env/.test(seg)) return false;
+    const words = seg.trim().split(/\s+/).slice(1);
+    const paths = words.filter((w) => !w.startsWith("-")).slice(1);
+    return paths.length === 0 || paths.some((p) => /^\.[\/\\]?$/.test(p));
+  });
+  if (printsEnv.test(command.replace(/--exclude=\S+/g, "")) || grepsRoot) {
+    block(".env holds the keys and must not be printed.");
+  }
+
+  if (agent_type === "code-reviewer" && !isReviewerSafe(command)) {
+    block(
+      "code-reviewer is read-only. Allowed: git diff/log/status/show, " +
+        "npm run build, npm test, npx astro check, grep/ls/cat."
+    );
+  }
+
+  if (gitSub("push").test(command)) {
+    block("CLAUDE.md: Claude never pushes. The owner pushes manually from their own terminal.");
+  }
+
+  if (gitSub("commit").test(command)) {
+    ask("CLAUDE.md: commit only with the owner's approval. Approve to run this commit.");
+  }
+
   process.exit(0);
 });

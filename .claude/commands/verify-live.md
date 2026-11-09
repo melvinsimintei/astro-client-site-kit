@@ -14,7 +14,7 @@
 #   You need both. Code can be clean but render broken.
 #
 # REQUIRES:
-#   Playwright MCP server must be running (Commit 5 sets this up)
+#   Playwright MCP server must be running (registered once at user scope, see docs/KIT.md)
 #   A live URL — not localhost
 
 Use Playwright MCP to open a real browser and test this live URL: $ARGUMENTS
